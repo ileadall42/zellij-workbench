@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Install zellij
+        run: |
+          curl -fsSL https://github.com/zellij-org/zellij/releases/latest/download/zellij-$(uname -m)-unknown-linux-musl.tar.gz -o /tmp/zellij.tar.gz 2>/dev/null || true
+          if [ -f /tmp/zellij.tar.gz ] && [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+            tar -xzf /tmp/zellij.tar.gz -C /usr/local/bin
+          elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+            brew install zellij
+          fi
+          zellij --version || echo "zellij unavailable; SSH/zellij-dependent tests will skip themselves"
+        shell: bash
+
+      - name: cargo build
+        run: cargo build --all-targets
+
+      - name: cargo clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: cargo test
+        run: cargo test

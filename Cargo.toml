@@ -1,0 +1,31 @@
+[package]
+name = "zellij-workbench"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+description = "Zellij Workbench: a terminal workspace memory manager for local and remote zellij sessions"
+license = "MIT"
+repository = "https://github.com/LeON-Nie-code/zellij-workbench"
+homepage = "https://github.com/LeON-Nie-code/zellij-workbench"
+readme = "README.md"
+keywords = ["zellij", "ssh", "tui", "workspace", "cli"]
+categories = ["command-line-utilities", "development-tools"]
+
+[[bin]]
+name = "zw"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0.100"
+chrono = { version = "0.4.42", features = ["serde"] }
+clap = { version = "4.5.51", features = ["derive"] }
+crossterm = "0.29.0"
+dirs = "6.0.0"
+ratatui = "0.29.0"
+rusqlite = { version = "0.37.0", features = ["bundled"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
+serde_yaml = "0.9.34"
+
+[dev-dependencies]
+tempfile = "3.14"
