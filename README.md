@@ -303,6 +303,13 @@ The suite includes real end-to-end coverage, not just unit tests:
 Both are skipped gracefully (not failed) on a machine without `zellij` or
 `sshd`/`ssh-keygen` available.
 
+## Further reading
+
+[docs/tui-development-guide.md](docs/tui-development-guide.md) — an in-depth
+breakdown of TUI application architecture (event loops, rendering
+performance, layout, navigation state, async responsiveness, and the
+features a good TUI needs), using this repo and lazygit as worked examples.
+
 ## Contributing
 
 Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md),

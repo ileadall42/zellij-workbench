@@ -291,6 +291,12 @@ cargo test
 在没有安装 `zellij` 或 `sshd`/`ssh-keygen` 的机器上，以上两类测试会优雅跳过
 而不是直接失败。
 
+## 延伸阅读
+
+[docs/tui-development-guide.md](docs/tui-development-guide.md) ——
+以本仓库和 lazygit 为例，深入拆解 TUI 应用的事件循环设计、渲染性能、布局系统、
+导航状态管理、异步响应性，以及一个"好用"的 TUI 需要哪些必要功能。
+
 ## 贡献
 
 欢迎提交 Issue 和 PR，参见 [CONTRIBUTING.md](CONTRIBUTING.md)、

@@ -50,10 +50,21 @@ pub fn run_tui() -> Result<()> {
     execute!(stdout, EnterAlternateScreen)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
-    let result = draw_tui(&mut terminal, workspaces);
+
+    // A panic inside the render loop must not leave the user's terminal
+    // stuck in raw mode / the alternate screen, so restore it before
+    // propagating the panic instead of just running draw_tui inline.
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        draw_tui(&mut terminal, workspaces)
+    }));
+
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
-    result
+
+    match result {
+        Ok(result) => result,
+        Err(payload) => std::panic::resume_unwind(payload),
+    }
 }
 
 fn load_indexed_workspaces() -> Result<Vec<Workspace>> {
