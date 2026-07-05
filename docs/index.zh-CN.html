@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Zellij Workbench — terminal workspace memory for zellij</title>
-<meta name="description" content="Zellij Workbench indexes local and remote zellij sessions, remembers the project context around them, and gives you one fast CLI/TUI entry point to get back to work.">
+<title>Zellij Workbench — zellij 终端工作区记忆管理器</title>
+<meta name="description" content="Zellij Workbench 索引本地和远程 zellij 会话，记住会话周边的项目上下文，提供一个快速的 CLI/TUI 入口帮你随时回到工作现场。">
 <style>
   :root {
     --bg: #0b1220;
@@ -19,7 +19,7 @@
     --good: #86efac;
     --border: rgba(148,163,184,0.2);
     --mono: "SF Mono", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
-    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+    --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Segoe UI", "Noto Sans SC", "Microsoft YaHei", sans-serif;
   }
   @media (prefers-color-scheme: light) {
     :root {
@@ -43,7 +43,7 @@
     background: var(--bg);
     color: var(--text);
     font-family: var(--sans);
-    line-height: 1.65;
+    line-height: 1.75;
     -webkit-font-smoothing: antialiased;
   }
   a { color: var(--accent-2); }
@@ -108,9 +108,9 @@
     margin: 0 0 14px;
   }
   h1 {
-    font-size: clamp(32px, 5vw, 52px);
-    line-height: 1.08;
-    letter-spacing: -0.02em;
+    font-size: clamp(30px, 5vw, 48px);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
     margin: 0 0 18px;
     text-wrap: balance;
   }
@@ -130,7 +130,7 @@
     border-radius: 10px;
     padding: 12px 16px;
     font-family: var(--mono);
-    font-size: 14px;
+    font-size: 13.5px;
   }
   .btn {
     display: inline-flex;
@@ -220,73 +220,72 @@
     <span>Zellij Workbench</span>
   </a>
   <nav class="links">
-    <a href="#features">Features</a>
-    <a href="#quickstart">Quick start</a>
-    <a href="#keys">TUI keys</a>
-    <a href="tui-development-guide.html">Dev guide</a>
+    <a href="#features">功能</a>
+    <a href="#quickstart">快速开始</a>
+    <a href="#keys">TUI 快捷键</a>
+    <a href="tui-development-guide.zh-CN.html">开发指南</a>
     <a href="https://github.com/ileadall42/zellij-workbench">GitHub</a>
-    <a href="index.zh-CN.html">中文</a>
   </nav>
 </header>
 
 <div class="wrap">
   <section class="hero" id="top">
-    <p class="eyebrow">A zellij port of tmux-workbench</p>
-    <h1>Never lose track of a zellij session again.</h1>
+    <p class="eyebrow">一个 zellij 版本的 tmux-workbench</p>
+    <h1>再也不会找不到自己的 zellij 会话。</h1>
     <p class="dek">
-      Zellij Workbench indexes your zellij sessions across your machine and SSH
-      servers, remembers the project context around them, and gives you one
-      fast CLI/TUI entry point to get back to work.
+      Zellij Workbench 索引你本机以及各台 SSH 服务器上的 zellij 会话，
+      记住会话周边的项目上下文，并提供一个统一、快速的 CLI/TUI 入口，
+      帮你随时回到之前的工作现场。
     </p>
     <div class="cta-row">
       <div class="install"><span style="color:var(--text-faint)">$</span> cargo install --git https://github.com/ileadall42/zellij-workbench zellij-workbench</div>
-      <a class="btn primary" href="#quickstart">Quick start</a>
-      <a class="btn" href="https://github.com/ileadall42/zellij-workbench">View on GitHub</a>
+      <a class="btn primary" href="#quickstart">快速开始</a>
+      <a class="btn" href="https://github.com/ileadall42/zellij-workbench">查看 GitHub</a>
     </div>
     <div class="demo-frame">
-      <img src="assets/demo.gif" alt="Zellij Workbench TUI: browsing workspaces, live search filtering, and server/view cycling" loading="lazy">
+      <img src="assets/demo.gif" alt="Zellij Workbench TUI：浏览工作区、实时搜索过滤、切换服务器和视图" loading="lazy">
     </div>
   </section>
 
   <section id="features">
-    <h2>What it actually does</h2>
-    <p class="section-dek">It does not replace zellij. It makes zellij workspaces easier to find, inspect, and resume — locally and over SSH.</p>
+    <h2>它实际上做了什么</h2>
+    <p class="section-dek">它不会替代 zellij，只是让 zellij 的工作区更容易被找到、查看和恢复——不管是本机还是远程。</p>
     <div class="grid">
       <div class="card">
-        <h3><span class="dot"></span>Local + remote indexing</h3>
-        <p>Scans zellij sessions on your machine and any number of SSH servers, batched into one round trip per host — not one per session.</p>
+        <h3><span class="dot"></span>本地 + 远程索引</h3>
+        <p>扫描本机以及任意数量的 SSH 服务器上的 zellij 会话，每台主机批量为一次 SSH 往返——而不是每个会话一次。</p>
       </div>
       <div class="card">
-        <h3><span class="dot"></span>Stable workspace IDs</h3>
-        <p>Every workspace gets a <code>&lt;server&gt;/&lt;session&gt;</code> ID. Attach back to it, or recreate it if it's gone, from any machine.</p>
+        <h3><span class="dot"></span>稳定的工作区 ID</h3>
+        <p>每个工作区都有一个 <code>&lt;server&gt;/&lt;session&gt;</code> ID。从任何一台机器上都能附着回去，或者在它消失后重建。</p>
       </div>
       <div class="card">
-        <h3><span class="dot"></span>Structured TUI search</h3>
-        <p>Filter with <code>server:</code> <code>status:</code> <code>tag:</code> <code>git:</code> prefixes alongside plain text, live as you type.</p>
+        <h3><span class="dot"></span>结构化的 TUI 搜索</h3>
+        <p>用 <code>server:</code> <code>status:</code> <code>tag:</code> <code>git:</code> 前缀叠加纯文本搜索，输入即时过滤。</p>
       </div>
       <div class="card">
-        <h3><span class="dot"></span>Git snapshots</h3>
-        <p>Branch, commit, dirty state, ahead/behind counts, and remote URL captured for every workspace on scan.</p>
+        <h3><span class="dot"></span>Git 快照</h3>
+        <p>每次扫描都会为每个工作区抓取分支、提交、脏状态、领先/落后计数和远程地址。</p>
       </div>
       <div class="card">
-        <h3><span class="dot"></span>Notes, aliases, tags</h3>
-        <p>Annotate workspaces and keep that metadata across rescans, even after the underlying session disappears.</p>
+        <h3><span class="dot"></span>备注、别名、标签</h3>
+        <p>给工作区加注释，跨扫描保留这些元数据——即使底层会话已经消失。</p>
       </div>
       <div class="card">
-        <h3><span class="dot"></span>Resurrectable sessions</h3>
-        <p>Tracks zellij's own exited-but-resurrectable sessions as a first-class presence state, shown as <code>active*</code> in the TUI.</p>
+        <h3><span class="dot"></span>可恢复会话</h3>
+        <p>把 zellij 自己的"已退出但可恢复"会话当作一等的存在状态来追踪，在 TUI 里显示为 <code>active*</code>。</p>
       </div>
     </div>
   </section>
 
   <section id="quickstart">
-    <h2>Quick start</h2>
-    <p class="section-dek">Requires <code>zellij</code>, <code>git</code>, and <code>ssh</code> for remote servers.</p>
+    <h2>快速开始</h2>
+    <p class="section-dek">需要 <code>zellij</code>、<code>git</code>，远程服务器还需要 <code>ssh</code>。</p>
     <div class="steps">
       <div class="step">
         <div class="n"></div>
         <div>
-          <p>Install and initialize a config.</p>
+          <p>安装并初始化配置。</p>
           <pre><code>curl -fsSL https://raw.githubusercontent.com/ileadall42/zellij-workbench/main/install.sh | bash
 zw init</code></pre>
         </div>
@@ -294,14 +293,14 @@ zw init</code></pre>
       <div class="step">
         <div class="n"></div>
         <div>
-          <p>Add a remote server (reuses your existing <code>~/.ssh/config</code>).</p>
+          <p>添加一台远程服务器（复用你已有的 <code>~/.ssh/config</code>）。</p>
           <pre><code>zw add-server prod --ssh "ssh prod"</code></pre>
         </div>
       </div>
       <div class="step">
         <div class="n"></div>
         <div>
-          <p>Scan, then browse in the TUI.</p>
+          <p>扫描，然后在 TUI 里浏览。</p>
           <pre><code>zw scan
 zw</code></pre>
         </div>
@@ -309,7 +308,7 @@ zw</code></pre>
       <div class="step">
         <div class="n"></div>
         <div>
-          <p>Or attach directly by ID from the CLI.</p>
+          <p>或者直接用 ID 从 CLI 附着。</p>
           <pre><code>zw attach prod/api</code></pre>
         </div>
       </div>
@@ -317,33 +316,33 @@ zw</code></pre>
   </section>
 
   <section id="keys">
-    <h2>TUI keys</h2>
-    <p class="section-dek">Shown live in the status bar of the TUI itself, so this is a reference, not something you need to memorize.</p>
+    <h2>TUI 快捷键</h2>
+    <p class="section-dek">TUI 自己的状态栏里会实时展示这些快捷键，这里只是给你一份参考，不需要死记硬背。</p>
     <table class="keys-table">
-      <tr><td>Enter</td><td>attach to the selected workspace</td></tr>
-      <tr><td>/</td><td>search — supports <code>server:</code> <code>status:</code> <code>tag:</code> <code>git:</code></td></tr>
-      <tr><td>n</td><td>edit note in <code>$EDITOR</code></td></tr>
-      <tr><td>a</td><td>archive / unarchive</td></tr>
-      <tr><td>v</td><td>cycle all / active / archived views</td></tr>
-      <tr><td>s</td><td>cycle server filter</td></tr>
-      <tr><td>r</td><td>rescan (also auto-refreshes every 30s)</td></tr>
-      <tr><td>j / k</td><td>move</td></tr>
-      <tr><td>q</td><td>quit</td></tr>
+      <tr><td>Enter</td><td>附着到选中的工作区</td></tr>
+      <tr><td>/</td><td>搜索——支持 <code>server:</code> <code>status:</code> <code>tag:</code> <code>git:</code></td></tr>
+      <tr><td>n</td><td>用 <code>$EDITOR</code> 编辑备注</td></tr>
+      <tr><td>a</td><td>归档 / 取消归档</td></tr>
+      <tr><td>v</td><td>在 全部 / 活跃 / 已归档 视图间切换</td></tr>
+      <tr><td>s</td><td>切换服务器过滤</td></tr>
+      <tr><td>r</td><td>重新扫描（也会每 30 秒自动后台刷新）</td></tr>
+      <tr><td>j / k</td><td>上下移动</td></tr>
+      <tr><td>q</td><td>退出</td></tr>
     </table>
   </section>
 </div>
 
 <footer>
   <div class="wrap">
-    <span>Zellij Workbench · MIT licensed</span>
+    <span>Zellij Workbench · MIT 许可</span>
     <span>
       <a href="https://github.com/ileadall42/zellij-workbench">GitHub</a>
       &nbsp;·&nbsp;
-      <a href="https://github.com/ileadall42/zellij-workbench/blob/main/CONTRIBUTING.md">Contributing</a>
+      <a href="https://github.com/ileadall42/zellij-workbench/blob/main/CONTRIBUTING.md">贡献指南</a>
       &nbsp;·&nbsp;
-      <a href="tui-development-guide.html">TUI dev guide</a>
+      <a href="tui-development-guide.zh-CN.html">TUI 开发指南</a>
       &nbsp;·&nbsp;
-      <a href="index.zh-CN.html">中文</a>
+      <a href="index.html">English</a>
     </span>
   </div>
 </footer>

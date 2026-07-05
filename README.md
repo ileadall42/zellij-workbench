@@ -309,7 +309,8 @@ Both are skipped gracefully (not failed) on a machine without `zellij` or
 
 ## Further reading
 
-[docs/tui-development-guide.md](docs/tui-development-guide.md) — an in-depth
+[docs/tui-development-guide.md](docs/tui-development-guide.md)
+([中文](docs/tui-development-guide.zh-CN.md)) — an in-depth
 breakdown of TUI application architecture (event loops, rendering
 performance, layout, navigation state, async responsiveness, and the
 features a good TUI needs), using this repo and lazygit as worked examples.

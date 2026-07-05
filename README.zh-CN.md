@@ -1,6 +1,6 @@
 # Zellij Workbench
 
-[English](README.md) | 简体中文 · [官网](https://ileadall42.github.io/zellij-workbench/)
+[English](README.md) | 简体中文 · [官网](https://ileadall42.github.io/zellij-workbench/index.zh-CN.html)
 
 Zellij Workbench 是一个面向本地和远程 zellij 会话的终端工作区记忆管理器，
 是 [tmux-workbench](https://github.com/LeON-Nie-code/tmux-workbench) 面向
@@ -297,7 +297,8 @@ cargo test
 
 ## 延伸阅读
 
-[docs/tui-development-guide.md](docs/tui-development-guide.md) ——
+[docs/tui-development-guide.zh-CN.md](docs/tui-development-guide.zh-CN.md)
+（[English](docs/tui-development-guide.md)）——
 以本仓库和 lazygit 为例，深入拆解 TUI 应用的事件循环设计、渲染性能、布局系统、
 导航状态管理、异步响应性，以及一个"好用"的 TUI 需要哪些必要功能。
 
