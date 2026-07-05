@@ -79,6 +79,12 @@ fn aggregates_sessions_from_two_simulated_remote_hosts() {
     ));
 
     let scan = sandbox.zw(&["scan"]);
+    // Printed unconditionally (not just on failure) so a CI run that fails
+    // downstream still gives a real diagnosis instead of a bare "not found".
+    eprintln!("zw scan stdout:\n{}", String::from_utf8_lossy(&scan.stdout));
+    eprintln!("zw scan stderr:\n{}", String::from_utf8_lossy(&scan.stderr));
+    eprintln!("host-a sshd log:\n{}", host_a.log_contents());
+    eprintln!("host-b sshd log:\n{}", host_b.log_contents());
     assert!(
         scan.status.success(),
         "zw scan failed: {}",

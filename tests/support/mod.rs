@@ -294,6 +294,12 @@ impl SimulatedHost {
             .filter(|line| line.contains("Accepted publickey"))
             .count()
     }
+
+    /// Raw sshd log, for diagnosing auth/connection failures in CI
+    /// environments this test can't be run against interactively.
+    pub fn log_contents(&self) -> String {
+        std::fs::read_to_string(self.dir.path().join("sshd.log")).unwrap_or_default()
+    }
 }
 
 impl Drop for SimulatedHost {
