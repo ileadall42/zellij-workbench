@@ -15,6 +15,10 @@ back to work.
 zw
 ```
 
+<p align="center">
+  <img src="docs/assets/demo.gif" alt="Zellij Workbench TUI demo" width="100%">
+</p>
+
 ## Why
 
 SSH plus zellij is resilient, but it does not remember enough when your work
