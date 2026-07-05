@@ -2,9 +2,12 @@
 
 [English](README.md) | 简体中文 · [官网](https://ileadall42.github.io/zellij-workbench/index.zh-CN.html)
 
-Zellij Workbench 是一个面向本地和远程 zellij 会话的终端工作区记忆管理器，
-是 [tmux-workbench](https://github.com/LeON-Nie-code/tmux-workbench) 面向
-[zellij](https://zellij.dev) 的完整重写版本，目标是功能完全对齐。
+Zellij Workbench 是一个面向本地和远程 zellij 会话的终端工作区记忆管理器，是
+**[Leon（LeON-Nie-code）](https://github.com/LeON-Nie-code)** 的
+**[tmux-workbench](https://github.com/LeON-Nie-code/tmux-workbench)** 面向
+[zellij](https://zellij.dev) 的完整重写版本，目标是功能完全对齐。原始设计——
+服务器/工作区模型、CLI 命令集、TUI 的布局和快捷键——全部来自那个项目，详见下面的
+[致谢](#致谢)。
 
 它会索引你本机以及各台 SSH 服务器上的 zellij 会话，记住会话周边的项目上下文，
 并提供一个统一、快速的 CLI/TUI 入口，帮你随时回到之前的工作现场。
@@ -301,6 +304,18 @@ cargo test
 （[English](docs/tui-development-guide.md)）——
 以本仓库和 lazygit 为例，深入拆解 TUI 应用的事件循环设计、渲染性能、布局系统、
 导航状态管理、异步响应性，以及一个"好用"的 TUI 需要哪些必要功能。
+
+## 致谢
+
+Zellij Workbench 之所以存在，全靠一个项目和一个人：
+**[Leon（LeON-Nie-code）](https://github.com/LeON-Nie-code)**，
+**[tmux-workbench](https://github.com/LeON-Nie-code/tmux-workbench)**
+的作者。这里的每一个设计——按稳定的 `<server>/<session>` ID 跨机器索引会话、
+本地 SQLite 记忆层、CLI 命令集、ratatui TUI 的布局和快捷键——都源自那个项目。
+这个仓库是面向 zellij 从零重写的 Rust 实现，不是一个 fork，但设计上紧跟
+tmux-workbench，"移植版"是对它最诚实的描述。如果你觉得这个工具好用，去给
+[tmux-workbench](https://github.com/LeON-Nie-code/tmux-workbench) 点个
+star——真正的设计工作是在那边完成的。
 
 ## 贡献
 

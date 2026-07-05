@@ -4,8 +4,11 @@ English | [简体中文](README.zh-CN.md) · [Website](https://ileadall42.github
 
 Zellij Workbench is a terminal workspace memory manager for local and remote
 zellij sessions. It is a ground-up [zellij](https://zellij.dev) port of
-[tmux-workbench](https://github.com/LeON-Nie-code/tmux-workbench), aiming for
-full feature parity.
+**[tmux-workbench](https://github.com/LeON-Nie-code/tmux-workbench) by
+[Leon (LeON-Nie-code)](https://github.com/LeON-Nie-code)**, aiming for full
+feature parity. All of the credit for the original design — the
+server/workspace model, the CLI surface, the TUI's look and keybindings —
+belongs to that project; see [Credits](#credits) below.
 
 It indexes zellij sessions across your machine and SSH servers, remembers the
 project context around them, and gives you one fast CLI/TUI entry point to get
@@ -314,6 +317,20 @@ Both are skipped gracefully (not failed) on a machine without `zellij` or
 breakdown of TUI application architecture (event loops, rendering
 performance, layout, navigation state, async responsiveness, and the
 features a good TUI needs), using this repo and lazygit as worked examples.
+
+## Credits
+
+Zellij Workbench exists because of one project and one person: **[Leon
+(LeON-Nie-code)](https://github.com/LeON-Nie-code)**, the author of
+**[tmux-workbench](https://github.com/LeON-Nie-code/tmux-workbench)**.
+Every idea here — indexing sessions across machines by a stable
+`<server>/<session>` ID, the local SQLite memory layer, the CLI surface,
+the ratatui TUI's layout and keybindings — originates from that project.
+This repo is a from-scratch Rust implementation for zellij instead of
+tmux, not a fork, but it follows tmux-workbench's design closely enough
+that "port" is the honest word for it. If you find this useful, go star
+[tmux-workbench](https://github.com/LeON-Nie-code/tmux-workbench) — that's
+where the actual design work happened.
 
 ## Contributing
 
