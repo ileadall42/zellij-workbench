@@ -1,6 +1,6 @@
 # Zellij Workbench
 
-English | [简体中文](README.zh-CN.md)
+English | [简体中文](README.zh-CN.md) · [Website](https://ileadall42.github.io/zellij-workbench/)
 
 Zellij Workbench is a terminal workspace memory manager for local and remote
 zellij sessions. It is a ground-up [zellij](https://zellij.dev) port of

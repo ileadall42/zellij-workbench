@@ -1,6 +1,6 @@
 # Zellij Workbench
 
-[English](README.md) | 简体中文
+[English](README.md) | 简体中文 · [官网](https://ileadall42.github.io/zellij-workbench/)
 
 Zellij Workbench 是一个面向本地和远程 zellij 会话的终端工作区记忆管理器，
 是 [tmux-workbench](https://github.com/LeON-Nie-code/tmux-workbench) 面向

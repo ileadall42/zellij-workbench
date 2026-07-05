@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TUI 应用开发深度指南 · Zellij Workbench</title>
+<meta name="description" content="以 zellij-workbench 和 lazygit 为例的 TUI 应用架构、性能与布局深度指南">
+<style>
+  :root {
+    --bg: #0b1220;
+    --surface: #121a2c;
+    --surface-2: #182238;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --text-faint: #5b6b84;
+    --accent: #5eead4;       /* zellij-workbench / ratatui 代码块 */
+    --accent-git: #a3e635;   /* lazygit / gocui 代码块 */
+    --accent-2: #7dd3fc;
+    --amber: #fde047;
+    --border: rgba(148,163,184,0.22);
+    --mono: "SF Mono", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Segoe UI", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  }
+  :root[data-theme="light"] {
+    --bg: #f6f8fb;
+    --surface: #ffffff;
+    --surface-2: #eef2f8;
+    --text: #101827;
+    --text-dim: #4b5768;
+    --text-faint: #8592a6;
+    --accent: #0d9488;
+    --accent-git: #4d7c0f;
+    --accent-2: #0369a1;
+    --amber: #92620a;
+    --border: rgba(15,23,42,0.12);
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f6f8fb;
+      --surface: #ffffff;
+      --surface-2: #eef2f8;
+      --text: #101827;
+      --text-dim: #4b5768;
+      --text-faint: #8592a6;
+      --accent: #0d9488;
+      --accent-git: #4d7c0f;
+      --accent-2: #0369a1;
+      --amber: #92620a;
+      --border: rgba(15,23,42,0.12);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--text); font-family: var(--sans); line-height: 1.75; -webkit-font-smoothing: antialiased; }
+
+  a { color: var(--accent-2); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+
+  .topbar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 14px 24px; background: var(--surface); border-bottom: 1px solid var(--border);
+    font-family: var(--mono); font-size: 12.5px; color: var(--text-dim);
+  }
+  .badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 4px; background: var(--accent); color: #04211c; font-weight: 700; letter-spacing: 0.03em; }
+  .topbar .chip { padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; }
+  .legend { display: inline-flex; align-items: center; gap: 5px; }
+  .swatch { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+
+  .wrap {
+    max-width: 1200px; margin: 0 auto; padding: 40px 24px 100px;
+    display: grid; grid-template-columns: 240px minmax(0,1fr); gap: 48px; align-items: start;
+  }
+  @media (max-width: 880px) { .wrap { grid-template-columns: 1fr; } nav.toc { display: none; } }
+
+  header.hero { grid-column: 1 / -1; padding-bottom: 8px; }
+  .eyebrow { font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.14em; font-size: 11.5px; color: var(--accent-2); margin: 0 0 10px; }
+  h1.title { font-size: clamp(26px, 4vw, 38px); margin: 0 0 14px; text-wrap: balance; font-weight: 800; letter-spacing: -0.01em; }
+  .dek { color: var(--text-dim); max-width: 70ch; font-size: 16px; margin: 0 0 6px; }
+
+  nav.toc { position: sticky; top: 24px; font-family: var(--mono); font-size: 12.5px; }
+  nav.toc .label { text-transform: uppercase; letter-spacing: 0.12em; font-size: 10.5px; color: var(--text-faint); margin-bottom: 10px; display: block; }
+  nav.toc ol { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--border); counter-reset: sect; }
+  nav.toc li a {
+    counter-increment: sect;
+    display: flex; gap: 8px; padding: 7px 0 7px 14px; color: var(--text-dim); text-decoration: none;
+    border-left: 2px solid transparent; margin-left: -1px;
+  }
+  nav.toc li a::before { content: counter(sect, decimal-leading-zero); color: var(--text-faint); }
+  nav.toc li a:hover { color: var(--text); border-left-color: var(--accent-2); }
+
+  main { min-width: 0; display: flex; flex-direction: column; gap: 34px; }
+
+  .pane { position: relative; border: 1px solid var(--border); border-radius: 12px; padding: 32px 28px 28px; background: var(--surface); }
+  .pane > .tab {
+    position: absolute; top: -12px; left: 20px; background: var(--bg); padding: 2px 10px;
+    font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--accent-2); border: 1px solid var(--border); border-radius: 6px;
+  }
+  .pane h2 { font-size: 22px; margin: 0 0 14px; letter-spacing: -0.01em; text-wrap: balance; }
+  .pane h3 { font-size: 15.5px; margin: 24px 0 8px; color: var(--text); }
+  .pane p { margin: 0 0 14px; max-width: 74ch; }
+  .pane ul, .pane ol { margin: 0 0 14px; padding-left: 22px; }
+  .pane li { margin-bottom: 8px; max-width: 72ch; }
+  .pane li::marker { color: var(--text-faint); }
+  .pane blockquote {
+    margin: 0 0 14px; padding: 10px 16px; border-left: 3px solid var(--accent-2);
+    background: var(--surface-2); border-radius: 0 8px 8px 0; color: var(--text-dim); font-size: 14.5px;
+  }
+  .pane blockquote p:last-child { margin-bottom: 0; }
+
+  code, .code { font-family: var(--mono); background: var(--surface-2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-size: 0.88em; }
+
+  .snippet { position: relative; margin: 0 0 18px; }
+  .snippet .src {
+    font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em;
+    display: inline-flex; align-items: center; gap: 6px; margin-bottom: 6px; color: var(--text-faint);
+  }
+  .snippet .src .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .snippet.rust pre { border-left: 3px solid var(--accent); }
+  .snippet.go pre { border-left: 3px solid var(--accent-git); }
+  .snippet.rust .dot { background: var(--accent); }
+  .snippet.go .dot { background: var(--accent-git); }
+  pre {
+    font-family: var(--mono); background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 16px; overflow-x: auto; font-size: 12.6px; line-height: 1.65; margin: 0;
+  }
+  pre code { background: none; border: none; padding: 0; }
+
+  .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; margin: 6px 0 8px; }
+  table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 13.2px; }
+  thead th {
+    font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em; font-size: 10.3px; color: var(--text-faint);
+    text-align: left; padding: 10px 14px; background: var(--surface-2); border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  tbody td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody td:first-child { font-weight: 650; color: var(--text-dim); white-space: nowrap; }
+
+  .principle-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 8px 0 4px; }
+  .principle { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .principle .h { font-family: var(--mono); font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .principle p { margin: 0; font-size: 13.3px; color: var(--text-dim); }
+
+  footer.page {
+    grid-column: 1 / -1; text-align: center; color: var(--text-faint); font-family: var(--mono); font-size: 11.5px;
+    padding-top: 10px; border-top: 1px solid var(--border); margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="badge">tui</span>
+  <span>TUI 应用开发深度指南</span>
+  <span class="chip">案例：zellij-workbench × lazygit</span>
+  <span class="legend"><span class="swatch" style="background:var(--accent)"></span>ratatui / Rust</span>
+  <span class="legend"><span class="swatch" style="background:var(--accent-git)"></span>gocui / Go</span>
+</div>
+
+<div class="wrap">
+
+<header class="hero">
+  <p class="eyebrow">Architecture &amp; Performance Deep Dive</p>
+  <h1 class="title">TUI 应用开发深度指南：从 zellij-workbench 到 lazygit</h1>
+  <p class="dek">
+    以本仓库（Rust + ratatui）和 lazygit（Go，自研 gocui + tcell）两个真实代码库为骨架，
+    拆解终端交互应用的事件循环、渲染性能、布局系统、导航状态和"必要功能"——每一段代码引用
+    都能在对应仓库里找到原文出处。
+  </p>
+</header>
+
+<nav class="toc">
+  <span class="label">目录</span>
+  <ol>
+    <li><a href="#s1">两大架构范式</a></li>
+    <li><a href="#s2">事件循环：TUI 的心脏</a></li>
+    <li><a href="#s3">渲染性能</a></li>
+    <li><a href="#s4">布局系统</a></li>
+    <li><a href="#s5">状态与导航</a></li>
+    <li><a href="#s6">异步与响应性</a></li>
+    <li><a href="#s7">必要功能清单</a></li>
+    <li><a href="#s8">案例对照表</a></li>
+    <li><a href="#s9">延伸阅读</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<section class="pane" id="s1">
+  <span class="tab">01 · Paradigms</span>
+  <h2>两大架构范式：即时模式 vs Elm 架构</h2>
+  <p>
+    做 TUI 之前先想清楚一件事：UI 状态和渲染逻辑之间是什么关系。业界基本收敛到两条路。
+  </p>
+  <h3>即时模式（Immediate Mode）——ratatui</h3>
+  <p>官方文档说得很直接：UI 在每一帧都被重新创建，没有常驻的 widget 对象。</p>
+  <div class="snippet rust">
+    <span class="src"><span class="dot"></span>ratatui docs</span>
+    <pre><code>loop {
+    terminal.draw(|f| {
+        if state.condition {
+            f.render_widget(SomeWidget::new(), layout);
+        } else {
+            f.render_widget(AnotherWidget::new(), layout);
+        }
+    })?;
+}</code></pre>
+  </div>
+  <p>
+    <code>zellij-workbench</code> 的 <code>draw_tui</code>（<code>src/tui.rs</code>）就是这个模式：
+    每次都重新构建 <code>List</code>、<code>Paragraph</code>、<code>Line</code>，不持有上一帧的
+    widget 引用。好处是简单——UI 逻辑就是状态的直接投影；代价是渲染循环和事件循环都要自己管，
+    库不会替你决定"什么时候该重画"。
+  </p>
+  <h3>Elm 架构（Model-Update-View）——bubbletea</h3>
+  <p>
+    Go 生态的 <a href="https://github.com/charmbracelet/bubbletea">bubbletea</a>（4.3 万+ star）是这个流派的代表。
+    三个函数：<code>Init() Cmd</code> 返回启动命令，<code>Update(Msg) (Model, Cmd)</code> 收到消息后返回
+    新状态 + 可选副作用命令，<code>View() string</code> 是只读 Model 的纯函数。数据单向流动：
+    事件 → Msg → Update → 新 Model → View → 终端，副作用被隔离进 <code>Cmd</code>。
+  </p>
+  <h3>持久 View + 脏标记——gocui / lazygit</h3>
+  <p>
+    第三种、更实用主义的形态：<code>View</code>（<code>pkg/gocui/view.go</code>）是一个<strong>持久对象</strong>，
+    持有自己的行缓冲区、光标、滚动位置——更接近传统 retained-mode 控件。但驱动方式是一个
+    <code>tainted</code> 脏标记 + 显式的 <code>SetContent</code> 调用，本质是"有状态的即时模式"：
+    视图对象常驻，内容仍是整体替换而非增量 patch。
+  </p>
+  <div class="principle-grid">
+    <div class="principle"><div class="h">选 Rust</div><p>直接拥抱 ratatui 的即时模式，不要在上面再手撸一层 widget 树 + diff——库层的 Buffer diff 已经处理了性能问题。</p></div>
+    <div class="principle"><div class="h">消息驱动明显</div><p>网络请求、订阅、多个独立异步来源较多时，Elm 架构能少踩很多"状态在哪改的"坑，即使不用 bubbletea 也可以手动实现简化版。</p></div>
+    <div class="principle"><div class="h">面板 + 弹窗复杂</div><p>多层导航、复杂如 lazygit 时，迟早需要持久视图对象 + 显式脏标记；纯函数式"每帧重建一切"会因状态量太大而笨重。</p></div>
+  </div>
+</section>
+
+<section class="pane" id="s2">
+  <span class="tab">02 · Event Loop</span>
+  <h2>事件循环：TUI 的心脏</h2>
+  <p>不管选哪种范式，事件循环骨架都长一个样：读取/等待事件 → 根据事件更新状态 → 按需重新渲染。</p>
+  <div class="snippet rust">
+    <span class="src"><span class="dot"></span>src/tui.rs · draw_tui</span>
+    <pre><code>loop {
+    apply_completed_refresh(&amp;refresh_rx, ..., &amp;search, view, server_filter.as_deref());
+
+    if last_auto_refresh.elapsed() >= AUTO_REFRESH_INTERVAL &amp;&amp; !auto_refresh_in_flight {
+        spawn_auto_refresh(refresh_tx.clone());
+        auto_refresh_in_flight = true;
+    }
+
+    terminal.draw(|frame| { /* 渲染整棵 UI 树 */ })?;
+
+    if event::poll(Duration::from_millis(200))? {
+        if let Event::Key(key) = event::read()? {
+            match mode { /* 处理按键 */ }
+        }
+    }
+}</code></pre>
+  </div>
+  <p>三个关键设计点：</p>
+  <ol>
+    <li><strong><code>event::poll(200ms)</code> 而不是 busy loop</strong>：阻塞式 <code>event::read()</code> 没法在等键盘时检查"该不该自动刷新了"；无超时忙轮询会把一个 CPU 核心跑到 100%。200ms 对人类按键无感知延迟，却足够低频不浪费 CPU。</li>
+    <li><strong>渲染在事件处理之前</strong>：保证任何状态变化（哪怕后台线程刚推过来的）都会在下一次循环里被画出来，不需要额外的"是否 dirty"判断。</li>
+    <li><strong>事件循环单线程，副作用去别的线程</strong>：任何可能阻塞的操作（扫描会话、跑 git 命令）都不能直接放进这个循环，否则一次扫描卡 3 秒，UI 就跟着卡 3 秒。</li>
+  </ol>
+  <h3>lazygit：两个 channel 喂一个单线程循环</h3>
+  <p>
+    <code>pollEvent()</code> goroutine 只把终端事件塞进 <code>g.gEvents</code>；任何后台 goroutine 想更新 UI，
+    必须调用 <code>Gui.Update(f)</code>，本质是把闭包塞进 <code>g.userEvents</code> channel：
+  </p>
+  <div class="snippet go">
+    <span class="src"><span class="dot"></span>pkg/gocui/gui.go</span>
+    <pre><code>func (g *Gui) Update(f func(*Gui) error) {
+    task := g.NewTask()
+    select {
+    case g.userEvents &lt;- userEvent{f: f, task: task}:
+    default:
+        panic("gocui: userEvents channel full; refusing to block or reorder")
+    }
+}</code></pre>
+  </div>
+  <p>
+    故意用非阻塞的 <code>select</code>/<code>default</code>：从 UI 线程自己往自己发送事件，阻塞会死锁；
+    而"满了就退化成同步执行"看似安全，实际会破坏调用者依赖的顺序保证——宁可 panic 暴露 bug。
+    主循环对两个 channel 做一次 <code>select</code>，再非阻塞地把当前排队的事件全部处理掉，才决定要不要渲染——
+    显式的事件合并：短时间挤在一起的一批事件先处理完，只渲染一次。
+  </p>
+  <blockquote><p>
+    通用结论：无论语言/框架，"单线程事件循环 + 所有跨线程通信走 channel/队列"几乎是 TUI 的铁律。
+    你可以让这个约束在类型系统里体现（Elm 架构的 Cmd/Msg），也可以像 gocui 那样用运行时 panic 兜底，
+    但"UI 状态只能被拥有它的那个线程修改"这条线不能碰。
+  </p></blockquote>
+</section>
+
+<section class="pane" id="s3">
+  <span class="tab">03 · Performance</span>
+  <h2>渲染性能：即时模式不等于暴力全屏重画</h2>
+  <p>
+    最常见的误解是"每帧重画所有 widget = 每帧把所有字节都发给终端"。实际上这是两件事，中间隔着一层 diff。
+  </p>
+  <p>
+    <strong>ratatui 的 Buffer diff</strong>：渲染进内存里的 <code>Buffer</code> 后，并不是整体转成转义序列发给终端，
+    而是用 <code>BufferDiff</code> 迭代器只把这一帧里<strong>真正变化</strong>的 <code>(x, y, cell)</code> 发给后端。
+    <strong>gocui/tcell 是同一套思路，只是发生在更底层</strong>：<code>CellBuffer.Dirty(x, y)</code> 比较这帧和上帧，
+    没变化的格子根本不会被写进要发给终端的字节流。
+  </p>
+  <blockquote><p>
+    结论 1：你几乎不需要手写"脏矩形"逻辑，这部分性能你白得。<br>
+    结论 2：真正的陷阱在"逻辑重建"这一层，不在"物理发送"这一层——为一个不在屏幕上的 1 万行列表格式化
+    1 万个字符串，这个 CPU 开销已经发生了，diff 只省了"发给终端"那一小步。
+  </p></blockquote>
+  <h3>lazygit 对"逻辑重建"这一层的具体处理</h3>
+  <div class="snippet go">
+    <span class="src"><span class="dot"></span>pkg/gui/context/list_context_trait.go · HandleRender</span>
+    <pre><code>if self.renderOnlyVisibleLines {
+    // Rendering only the visible area can save a lot of cell memory for
+    // those views that support it.
+    startIdx, length := self.GetViewTrait().ViewPortYBounds()
+    content := self.renderLines(startIdx, startIdx+length)
+    self.GetViewTrait().SetViewPortContentAndClearEverythingElse(totalLength, content)
+}</code></pre>
+  </div>
+  <ul>
+    <li><strong>列表虚拟化</strong>：只格式化视口可见范围内的行，而不是整个提交历史/文件列表。</li>
+    <li><strong>跳过整个布局重算的"仅内容"快路径</strong>：<code>flushContentOnly()</code> 在整批事件都标记 <code>contentOnly</code> 时，直接跳过 <code>Layout()</code> 重算，只重画 <code>tainted</code> 的 view——状态栏 100ms 一次的 spinner 没理由触发整体窗口布局重排。</li>
+    <li><strong>昂贵计算的显式缓存</strong>：commit 图的 <code>pipeSetCache</code>、着色字符串的 <code>rgbCache</code>、<code>git config</code> 读取的 <code>CachedGitConfig</code>，避免每次刷新都重新计算/fork 子进程。</li>
+    <li><strong>限流突发请求</strong>：
+      <div class="snippet go" style="margin-top:8px">
+        <span class="src"><span class="dot"></span>pkg/tasks/tasks.go</span>
+        <pre><code>const THROTTLE_TIME = time.Millisecond * 30
+const COMMAND_START_THRESHOLD = time.Millisecond * 10</code></pre>
+      </div>
+      用户快速翻动 commit 列表时，若上一个 <code>git show</code> 被取消得很快、系统看起来已吃力，下一个命令会先 sleep 30ms 再启动——显式避免"快速翻页 = 疯狂 fork 子进程"。
+    </li>
+  </ul>
+  <h3>检查清单</h3>
+  <ul>
+    <li>长列表一定要做视口窗口化——diff 只能省发送成本，省不了构建字符串的成本。</li>
+    <li>"同一份输入、短时间内重复计算"的东西，用一个 <code>HashMap</code> 做 memoization。</li>
+    <li>高频但视觉轻量的更新（进度条、spinner）要有不触发整体布局重算的快路径。</li>
+    <li>用户能快速触发、背后连着重量级命令的操作，要"取消上一个 + 限流下一个"。</li>
+  </ul>
+</section>
+
+<section class="pane" id="s4">
+  <span class="tab">04 · Layout</span>
+  <h2>布局系统：约束驱动，而不是像素计算</h2>
+  <p>好的 TUI 布局都收敛到同一个思路：声明式的约束/权重，而不是手算 x/y 坐标——终端 resize 时只需重新求解约束。</p>
+  <div class="snippet rust">
+    <span class="src"><span class="dot"></span>src/tui.rs · draw_tui</span>
+    <pre><code>let shell = Layout::default()
+    .direction(Direction::Vertical)
+    .constraints([
+        Constraint::Length(3),  // 顶部状态栏：固定 3 行
+        Constraint::Min(8),     // 中间主体：至少 8 行，其余空间都给它
+        Constraint::Length(1),  // 底部快捷键提示：固定 1 行
+    ])
+    .split(frame.area());
+
+let chunks = Layout::default()
+    .direction(Direction::Horizontal)
+    .constraints([Constraint::Percentage(52), Constraint::Percentage(48)])
+    .split(shell[1]);</code></pre>
+  </div>
+  <p>典型的嵌套切分：先竖切"头/体/脚"三段，再把中间段横切成 52%/48% 两栏。resize 后这段代码完全不用改。</p>
+  <div class="snippet go">
+    <span class="src"><span class="dot"></span>lazycore/pkg/boxlayout/boxlayout.go</span>
+    <pre><code>type Box struct {
+    Direction Direction   // ROW 或 COLUMN
+    Children  []*Box
+    Window    string      // 叶子节点：对应哪个窗口
+    Size      int         // 静态大小（和 Weight 二选一）
+    Weight    int         // 动态权重，按比例分配剩余空间
+}</code></pre>
+  </div>
+  <p>
+    <code>ArrangeWindows</code> 的分配算法本质是 flexbox：先满足所有 <code>Size</code> 子节点，剩余空间再按
+    <code>Weight</code> 比例分给其余子节点——和 CSS <code>flex-grow</code> 是同一个模型。每一帧都用当前屏幕
+    宽高、聚焦窗口、屏幕模式重新构建整棵 <code>Box</code> 树再求解——<strong>布局从头算，不做增量 patch</strong>，
+    因为树很小，重算开销可忽略。
+  </p>
+  <div class="principle-grid">
+    <div class="principle"><div class="h">复杂度匹配</div><p>约束系统复杂度该和布局复杂度匹配——两栏静态布局用 Constraint 就够，"正常/半屏/全屏/横竖屏切换"值得单独抽一棵可递归的 Box 树。</p></div>
+    <div class="principle"><div class="h">响应式是副产品</div><p>两边都没为 resize 写专门分支——布局本来就是每帧算的，尺寸只是输入参数之一。</p></div>
+    <div class="principle"><div class="h">布局与内容解耦</div><p><code>Rect</code> 数组或 <code>Dimensions</code> map 只回答"这块区域多大在哪"，不掺杂"画什么"。</p></div>
+  </div>
+</section>
+
+<section class="pane" id="s5">
+  <span class="tab">05 · Navigation</span>
+  <h2>状态与导航：从一个枚举到一个上下文栈</h2>
+  <div class="snippet rust">
+    <span class="src"><span class="dot"></span>src/tui.rs</span>
+    <pre><code>enum InputMode {
+    Normal,
+    Search,
+}</code></pre>
+  </div>
+  <p>
+    一个枚举 + <code>match</code>，对"列表浏览 + 搜索输入框"这种扁平交互完全够用。但如果需要
+    "面板弹菜单、菜单再弹确认框、Esc 逐层退回、退回后原面板状态原样保留"——扁平枚举会迅速膨胀成
+    所有模式的笛卡尔积式巨型 <code>match</code>。
+  </p>
+  <h3>lazygit 的显式上下文栈</h3>
+  <div class="snippet go">
+    <span class="src"><span class="dot"></span>pkg/gui/context.go</span>
+    <pre><code>type ContextMgr struct {
+    ContextStack []types.Context
+    sync.RWMutex
+    ...
+}</code></pre>
+  </div>
+  <p>每个面板/弹窗实现 <code>types.Context</code>，声明自己的种类，压栈规则按种类走：</p>
+  <ul>
+    <li>压入 <code>SIDE_CONTEXT</code>（侧边栏）→ <strong>清空整个栈</strong>只留它自己（互斥，不嵌套）。</li>
+    <li>压入 <code>MAIN_CONTEXT</code>（主内容区）→ 移除其他 <code>MAIN_CONTEXT</code>，但保留侧边栏等其他层。</li>
+    <li>其他情况（菜单/确认框）→ 若栈顶是临时弹窗，直接替换而非嵌套（代码注释坦诚承认这是已知取舍：临时弹窗复用同一个 view，理论上该支持逐层返回，目前做不到）。</li>
+  </ul>
+  <p>
+    这个栈同时是键盘事件路由的唯一依据：激活一个 context 会调用 <code>SetCurrentView</code>，
+    gocui 决定"按键该由谁处理"只认 <code>g.currentView</code>——"现在按键归谁"，答案永远是"看栈顶"。
+  </p>
+  <h3>什么时候该升级</h3>
+  <ul>
+    <li>"模式"之间开始出现真正的<strong>嵌套</strong>而不是简单互斥切换。</li>
+    <li>Esc 的语义变成"退回上一层"而不是"回到某个固定默认状态"。</li>
+    <li>不同模式需要独立的按键绑定表，而不是在一个大 <code>match</code> 里穷举笛卡尔积。</li>
+  </ul>
+  <blockquote><p>不要过早引入：如果确实只有"浏览 + 搜索"这种扁平交互，一个枚举远比一整套 context 抽象好维护。上下文栈是给"确实有嵌套导航需求"的应用准备的，不是 TUI 的标配起手式。</p></blockquote>
+</section>
+
+<section class="pane" id="s6">
+  <span class="tab">06 · Async</span>
+  <h2>异步与响应性：永远不要阻塞事件循环</h2>
+  <p>耗时操作（网络、子进程、磁盘）怎么办？两边答案高度一致：开线程/goroutine 去做，通过 channel 把结果送回来，事件循环只非阻塞地"看看有没有新结果"。</p>
+  <div class="snippet rust">
+    <span class="src"><span class="dot"></span>src/tui.rs</span>
+    <pre><code>let (refresh_tx, refresh_rx) = mpsc::channel();
+
+fn spawn_auto_refresh(refresh_tx: Sender&lt;RefreshResult&gt;) {
+    thread::spawn(move || {
+        let result = refresh_index_report()
+            .and_then(|summary| { /* 重新从 SQLite 读一遍 */ })
+            .map_err(|err| format!("{err:#}"));
+        let _ = refresh_tx.send(result);
+    });
+}</code></pre>
+  </div>
+  <p>
+    主循环每次迭代开头非阻塞地 <code>try_recv()</code> 取出已跑完的后台结果合并进 UI 状态，同时用
+    <code>restore_selection</code> 按 ID（而不是下标）找回用户当前选中的行——不会因为数据刷新就把光标
+    弹回列表顶部。扫描/git 命令全程在另一线程跑，事件循环该 200ms 轮询按键就照常轮询。这本质上是
+    一个手搓的、简化版"Cmd 派发 + Msg 回收"（对应第一节的 Elm 架构思路）。
+  </p>
+  <h3>lazygit 的两层异步</h3>
+  <p>
+    <code>Gui.OnWorker(f)</code> 开 goroutine 跑 <code>f</code>，自动包 panic 恢复；
+    <code>RefreshHelper.Refresh</code> 让文件/分支/commit/stash 等各自并发刷新，跑完必须通过
+    <code>OnUIThread</code>（即 <code>Gui.Update</code>）写回 UI，绝不允许 worker 直接改 view；
+    每类数据各自一把互斥锁（<code>RefreshingFilesMutex</code> 等）防止刷新互相踩踏。
+  </p>
+  <p>
+    更精细的是 <code>pkg/tasks/tasks.go</code> 的 <code>ViewBufferManager</code>：翻 commit 时每选中一个就要跑
+    <code>git show</code>，与其等命令跑完再整体塞进 view，不如 4 个协作 goroutine 边读边显示——一个扫
+    stdout 灌 channel，一个 200ms 无内容时显示占位符，一个消费者写入并局部重绘，一个监听取消信号
+    优雅终止上一个还没跑完的进程。
+  </p>
+  <h3>检查清单</h3>
+  <ul>
+    <li>可能阻塞超过一帧时间的操作，不能直接放进事件循环所在线程。</li>
+    <li>后台结果必须通过 channel/队列交回事件循环线程再改状态，不要靠 <code>Mutex&lt;State&gt;</code> 跨线程直改然后指望渲染线程"自然看到"。</li>
+    <li>高频刷新要么去重（已经在跑就不重复启动），要么限流。</li>
+    <li>长输出命令考虑流式消费，能显著改善大仓库/长历史下的可感知延迟。</li>
+  </ul>
+</section>
+
+<section class="pane" id="s7">
+  <span class="tab">07 · Essentials</span>
+  <h2>必要功能清单：一个"好用"的 TUI 需要什么</h2>
+  <ul>
+    <li><strong>快捷键要可发现</strong>，不能靠用户记文档。<code>zellij-workbench</code> 的底部状态栏常驻展示当前模式下所有可用按键；lazygit 更进一步，底部选项栏 + <code>?</code> 完整可搜索键位菜单共享同一份 binding 数据。</li>
+    <li><strong>搜索/过滤要支持结构化查询</strong>。<code>SearchQuery::parse</code> 支持 <code>server:</code> <code>status:</code> <code>tag:</code> <code>git:</code> 前缀叠加纯文本关键词，一行输入表达复合条件。</li>
+    <li><strong>异步操作要有可见的状态反馈</strong>，哪怕只是一行文字（<code>scan_status</code>：idle / refreshing… / ok, N workspaces / failed）。</li>
+    <li><strong>默认操作克制，危险操作显式升级</strong>。会话缺失时 <code>attach</code> 报错并提示"用 <code>recreate</code>"，而不是静默建一个空会话；lazygit 对 force push、丢弃修改会弹确认框。</li>
+    <li><strong>后台刷新不能打断用户当前操作状态</strong>。<code>restore_selection</code> 按 ID 找回选中行，而不是刷新后 selection 归零。</li>
+    <li><strong>resize 要免特殊处理</strong>——只要布局是"每帧从当前尺寸重新求解"，几乎不需要专门代码（见第 4 节）。</li>
+  </ul>
+  <h3>终端状态必须能在异常退出时被恢复</h3>
+  <p>这是本文写作过程中在这个仓库里发现的真实问题：</p>
+  <div class="snippet rust">
+    <span class="src"><span class="dot"></span>src/tui.rs · run_tui（修复前）</span>
+    <pre><code>enable_raw_mode()?;
+execute!(stdout, EnterAlternateScreen)?;
+let result = draw_tui(&amp;mut terminal, workspaces); // 如果这里 panic……
+disable_raw_mode()?;                               // ……这两行就永远不会跑
+execute!(terminal.backend_mut(), LeaveAlternateScreen)?;</code></pre>
+  </div>
+  <p>一旦 <code>draw_tui</code> 内部 panic（哪怕只是下标越界的低级 bug），用户终端会卡在 raw mode + 备用屏幕里，回车没反应，体验非常糟糕。修复：</p>
+  <div class="snippet rust">
+    <span class="src"><span class="dot"></span>src/tui.rs · run_tui（修复后）</span>
+    <pre><code>let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+    draw_tui(&amp;mut terminal, workspaces)
+}));
+disable_raw_mode()?;
+execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+match result {
+    Ok(result) => result,
+    Err(payload) => std::panic::resume_unwind(payload),
+}</code></pre>
+  </div>
+  <p>
+    lazygit 的 <code>onWorkerAux</code> 同理：未恢复的 panic 会先调用 <code>Screen.Fini()</code>（tcell 退出
+    备用屏幕、恢复终端模式的清理函数）再继续 panic。<strong>原则一样：任何可能 panic 的路径，只要发生在
+    "终端已切换到特殊模式"之后，就必须显式兜底恢复终端</strong>——这个教训对所有直接操作 raw mode 的
+    语言/框架通用（Node 的 blessed/ink、Python 的 curses 都有等价的 <code>finally</code>/<code>atexit</code> 模式）。
+  </p>
+</section>
+
+<section class="pane" id="s8">
+  <span class="tab">08 · Side by Side</span>
+  <h2>案例对照表</h2>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>维度</th><th>zellij-workbench（ratatui）</th><th>lazygit（gocui/tcell）</th></tr></thead>
+      <tbody>
+        <tr><td>架构范式</td><td>即时模式：每帧重建 widget 树</td><td>持久 View 对象 + 脏标记局部重建</td></tr>
+        <tr><td>事件循环</td><td>单线程 loop，poll(200ms)</td><td>单线程 processEvent，两个 channel 汇合</td></tr>
+        <tr><td>渲染 diff</td><td>BufferDiff（cell 级）</td><td>tcell Dirty()（cell 级）+ gocui 自研 view 级快路径</td></tr>
+        <tr><td>长列表优化</td><td>未做虚拟化（数据规模不需要）</td><td>RenderOnlyVisibleLines：只格式化可见窗口</td></tr>
+        <tr><td>布局系统</td><td>Layout + Constraint</td><td>自研 boxlayout：Size/Weight 递归树</td></tr>
+        <tr><td>导航/模式</td><td>扁平枚举 InputMode</td><td>ContextMgr 上下文栈</td></tr>
+        <tr><td>异步</td><td>thread::spawn + mpsc</td><td>OnWorker + OnUIThread，scope 级互斥锁</td></tr>
+        <tr><td>限流/缓存</td><td>暂无（规模不需要）</td><td>commit 图/颜色/git config 缓存，命令限流 30ms</td></tr>
+        <tr><td>快捷键发现</td><td>底部固定提示行</td><td>底部选项栏 + ? 完整键位菜单</td></tr>
+        <tr><td>终端状态恢复</td><td>catch_unwind（本次修复）</td><td>panic recover + Screen.Fini()</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    不是"lazygit 处处更强"，而是两边复杂度投入和问题规模匹配——lazygit 要处理任意大小的真实仓库、
+    复杂多面板导航，所以在虚拟化/缓存/限流/上下文栈上做了真功夫；<code>zellij-workbench</code> 现阶段的
+    数据规模用即时模式 + 扁平状态就够。<strong>先把复杂度控制在刚好够用，等真的遇到"明显卡了"或
+    "模式管理已经乱了"的信号，再按本文方向加虚拟化、缓存、上下文栈。</strong>
+  </p>
+</section>
+
+<section class="pane" id="s9">
+  <span class="tab">09 · Further</span>
+  <h2>延伸阅读</h2>
+  <ul>
+    <li><a href="https://ratatui.rs/concepts/rendering/under-the-hood/">Ratatui：Rendering under the hood</a> — 官方文档对 Buffer diff 机制的详细说明</li>
+    <li><a href="https://github.com/ratatui/ratatui/blob/main/ARCHITECTURE.md">Ratatui ARCHITECTURE.md</a> — 0.30 之后的多 crate 拆分</li>
+    <li><a href="https://github.com/charmbracelet/bubbletea">The Elm Architecture（bubbletea）</a> — Model-Update-View 在 Go 里的落地</li>
+    <li><a href="https://github.com/jesseduffield/lazygit">lazygit 源码</a> — 尤其是 <code>pkg/gocui/gui.go</code>、<code>pkg/gui/context.go</code>、<code>pkg/tasks/tasks.go</code>、<code>lazycore/pkg/boxlayout</code></li>
+    <li>本仓库 <code>src/tui.rs</code> — 本文几乎每个 ratatui 例子都直接摘自这个文件</li>
+  </ul>
+  <blockquote><p>
+    建议起步顺序：先用即时模式 + 扁平状态枚举把主流程跑通，按第 2 节把事件循环和异步刷新的骨架
+    搭对，再根据实际遇到的性能/导航复杂度问题，参考第 3、4、5 节里 lazygit 的做法逐步"加料"——
+    而不是一开始就把上下文栈、虚拟化列表、限流这些为大规模场景准备的机制全部搬进来。
+  </p></blockquote>
+</section>
+
+</main>
+
+<footer class="page">TUI Development Guide · 基于 zellij-workbench 与 jesseduffield/lazygit 源码分析 · 2026-07-05 ·
+  <a href="index.html" style="color:inherit">← Zellij Workbench</a>
+</footer>
+
+</div>
+</body>
+</html>
