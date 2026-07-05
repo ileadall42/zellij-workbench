@@ -88,8 +88,46 @@ impl ZellijSessionGuard {
             .status()
             .expect("create background zellij session");
         assert!(status.success(), "failed to create session {name}");
+
+        // `--create-background` returning doesn't guarantee the initial
+        // pane's shell has started and reported its cwd yet (this races on
+        // slower CI runners in particular — observed empty root_path on
+        // GitHub's ubuntu-latest even though it never reproduced locally).
+        // Wait for a real, non-plugin pane with a populated pane_cwd before
+        // handing the session back so callers don't scan too early.
+        let ready = wait_for(
+            || terminal_pane_is_ready(&name),
+            std::time::Duration::from_secs(10),
+        );
+        assert!(
+            ready,
+            "session {name} never reported a ready terminal pane in time"
+        );
+
         ZellijSessionGuard { name }
     }
+}
+
+fn terminal_pane_is_ready(session: &str) -> bool {
+    let Ok(output) = Command::new("zellij")
+        .args(["--session", session, "action", "list-panes", "--all", "--json"])
+        .output()
+    else {
+        return false;
+    };
+    if !output.status.success() {
+        return false;
+    }
+    let Ok(panes) = serde_json::from_slice::<Vec<serde_json::Value>>(&output.stdout) else {
+        return false;
+    };
+    panes.iter().any(|pane| {
+        pane.get("is_plugin") == Some(&serde_json::Value::Bool(false))
+            && pane
+                .get("pane_cwd")
+                .and_then(|value| value.as_str())
+                .is_some_and(|cwd| !cwd.is_empty())
+    })
 }
 
 impl Drop for ZellijSessionGuard {
