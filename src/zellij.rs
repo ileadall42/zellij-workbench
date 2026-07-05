@@ -56,7 +56,9 @@ pub fn scan_server(server: &ServerConfig) -> Result<Vec<Workspace>> {
 
     let mut workspaces: Vec<Workspace> = sessions
         .into_iter()
-        .map(|(name, resurrectable, panes)| build_workspace(&server.name, &name, resurrectable, panes))
+        .map(|(name, resurrectable, panes)| {
+            build_workspace(&server.name, &name, resurrectable, panes)
+        })
         .collect();
 
     for workspace in &mut workspaces {
@@ -102,10 +104,7 @@ fn scan_script() -> String {
 
 fn parse_scan_output(raw: &str) -> Result<Vec<(String, bool, Vec<PaneJson>)>> {
     if let Some(error_line) = raw.lines().find(|line| line.starts_with(SCAN_ERROR)) {
-        let message = error_line
-            .trim_start_matches(SCAN_ERROR)
-            .trim()
-            .to_string();
+        let message = error_line.trim_start_matches(SCAN_ERROR).trim().to_string();
         bail!("{message}");
     }
 
@@ -150,7 +149,12 @@ fn process_name(pane_command: Option<&str>) -> String {
         .to_string()
 }
 
-fn build_workspace(server: &str, session: &str, resurrectable: bool, panes_json: Vec<PaneJson>) -> Workspace {
+fn build_workspace(
+    server: &str,
+    session: &str,
+    resurrectable: bool,
+    panes_json: Vec<PaneJson>,
+) -> Workspace {
     let panes: Vec<Pane> = panes_json
         .into_iter()
         .filter(|pane| !pane.is_plugin)
@@ -167,12 +171,17 @@ fn build_workspace(server: &str, session: &str, resurrectable: bool, panes_json:
         })
         .collect();
 
-    let active = panes.iter().find(|pane| pane.active).or_else(|| panes.first());
+    let active = panes
+        .iter()
+        .find(|pane| pane.active)
+        .or_else(|| panes.first());
     let agent_pane = panes
         .iter()
         .find(|pane| pane.command == "codex" || pane.command == "claude")
         .or(active);
-    let agent = agent_pane.map(|pane| pane.command.clone()).unwrap_or_default();
+    let agent = agent_pane
+        .map(|pane| pane.command.clone())
+        .unwrap_or_default();
     let root_path = agent_pane.map(|pane| pane.path.clone()).unwrap_or_default();
 
     Workspace {
@@ -425,8 +434,8 @@ mod tests {
     use crate::model::ServerConfig;
 
     use super::{
-        attach_ssh_command, build_workspace, normalize_git_remote, parse_scan_output,
-        process_name, zellij_attach_command, zellij_create_command,
+        attach_ssh_command, build_workspace, normalize_git_remote, parse_scan_output, process_name,
+        zellij_attach_command, zellij_create_command,
     };
 
     fn server(name: &str, local: bool) -> ServerConfig {

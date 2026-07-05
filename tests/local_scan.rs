@@ -83,7 +83,12 @@ fn scans_a_real_local_session_end_to_end() {
     let id = workspace["id"].as_str().unwrap().to_string();
     assert!(sandbox.zw(&["alias", &id, "demo"]).status.success());
     assert!(sandbox.zw(&["note", &id, "uses uv"]).status.success());
-    assert!(sandbox.zw(&["tags", &id, "work", "backend"]).status.success());
+    assert!(
+        sandbox
+            .zw(&["tags", &id, "work", "backend"])
+            .status
+            .success()
+    );
     assert!(sandbox.zw(&["scan"]).status.success());
 
     let workspaces = list_json(&sandbox);
@@ -92,7 +97,10 @@ fn scans_a_real_local_session_end_to_end() {
     assert_eq!(workspace["note"], "uses uv");
     assert_eq!(
         workspace["tags"].as_array().unwrap(),
-        &[Value::String("work".into()), Value::String("backend".into())]
+        &[
+            Value::String("work".into()),
+            Value::String("backend".into())
+        ]
     );
 
     // Killing the session should flip presence to missing while keeping the

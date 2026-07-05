@@ -88,9 +88,6 @@ mod tests {
 
     #[test]
     fn sanitizes_workspace_id_for_temp_filename() {
-        assert_eq!(
-            sanitize_filename("host-a/NeuroPlay"),
-            "host-a_NeuroPlay"
-        );
+        assert_eq!(sanitize_filename("host-a/NeuroPlay"), "host-a_NeuroPlay");
     }
 }

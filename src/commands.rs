@@ -90,7 +90,10 @@ fn scan_index(verbose: bool) -> Result<ScanSummary> {
 /// A resurrectable (exited) session has no live process to query, so it
 /// carries no fresh pane/root_path/agent data. Reuse whatever the previous
 /// scan recorded so `recreate`/`attach` still know where the workspace lives.
-fn carry_forward_resurrected_state(workspace: &mut Workspace, previous: &HashMap<String, Workspace>) {
+fn carry_forward_resurrected_state(
+    workspace: &mut Workspace,
+    previous: &HashMap<String, Workspace>,
+) {
     if !workspace.resurrectable || !workspace.root_path.is_empty() {
         return;
     }

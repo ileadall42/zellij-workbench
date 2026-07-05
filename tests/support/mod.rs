@@ -110,7 +110,14 @@ impl ZellijSessionGuard {
 
 fn terminal_pane_is_ready(session: &str) -> bool {
     let Ok(output) = Command::new("zellij")
-        .args(["--session", session, "action", "list-panes", "--all", "--json"])
+        .args([
+            "--session",
+            session,
+            "action",
+            "list-panes",
+            "--all",
+            "--json",
+        ])
         .output()
     else {
         return false;
@@ -236,9 +243,8 @@ impl SimulatedHost {
         // dir concept). Propagate whatever the test process itself sees.
         if let Ok(runtime_dir) = std::env::var("XDG_RUNTIME_DIR") {
             if !runtime_dir.is_empty() {
-                environment_directives.push(format!(
-                    "environment=\"XDG_RUNTIME_DIR={runtime_dir}\""
-                ));
+                environment_directives
+                    .push(format!("environment=\"XDG_RUNTIME_DIR={runtime_dir}\""));
             }
         }
         let authorized_keys = dir.path().join("authorized_keys");
@@ -290,7 +296,10 @@ impl SimulatedHost {
             || std::net::TcpStream::connect(("127.0.0.1", host.port)).is_ok(),
             std::time::Duration::from_secs(5),
         );
-        assert!(ready, "sshd on port {port} never started accepting connections");
+        assert!(
+            ready,
+            "sshd on port {port} never started accepting connections"
+        );
         host
     }
 

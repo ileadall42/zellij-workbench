@@ -17,7 +17,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: clippy
+          components: clippy, rustfmt
 
       - name: Install zellij
         run: |
@@ -29,6 +29,9 @@ jobs:
           fi
           zellij --version || echo "zellij unavailable; SSH/zellij-dependent tests will skip themselves"
         shell: bash
+
+      - name: cargo fmt
+        run: cargo fmt --check
 
       - name: cargo build
         run: cargo build --all-targets
