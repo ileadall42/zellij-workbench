@@ -223,11 +223,30 @@ impl SimulatedHost {
         // that normally put Homebrew (and thus `zellij`) on PATH, so it is
         // forced here via `environment=` the same way a real remote host's
         // shell profile would already have it configured.
+        let mut environment_directives = vec![
+            "environment=\"PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin\""
+                .to_string(),
+        ];
+        // On Linux, zellij's session socket directory lives under
+        // $XDG_RUNTIME_DIR; a bare `ssh host 'cmd'` invocation doesn't get a
+        // full login/PAM session and so doesn't inherit it, which makes
+        // zellij resolve to a *different*, empty session store than the one
+        // the test actually created sessions in (observed in CI on
+        // ubuntu-latest; never reproduces on macOS, which has no XDG runtime
+        // dir concept). Propagate whatever the test process itself sees.
+        if let Ok(runtime_dir) = std::env::var("XDG_RUNTIME_DIR") {
+            if !runtime_dir.is_empty() {
+                environment_directives.push(format!(
+                    "environment=\"XDG_RUNTIME_DIR={runtime_dir}\""
+                ));
+            }
+        }
         let authorized_keys = dir.path().join("authorized_keys");
         std::fs::write(
             &authorized_keys,
             format!(
-                "environment=\"PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin\" {}",
+                "{} {}",
+                environment_directives.join(","),
                 client_key.public_key()
             ),
         )
